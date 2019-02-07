@@ -2,8 +2,29 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import './App.css';
 
+// initialize big_map
+if (localStorage.getItem('big_map') === null) {
+  localStorage.setItem('big_map', JSON.stringify({}))
+} 
+
+// send token on header of every request
 const secret_token = 'Token a8c8c5dc999d0ce160ce55b343e72be7694b27aa'
 axios.defaults.headers.common['Authorization'] = secret_token;
+
+// Build Queue class for breadth first search
+class Queue {
+  constructor() {
+    this.storage = [];
+  }
+
+  enqueue(item) {
+    this.storage.push(item);
+  }
+
+  dequeue() {
+    return this.storage.splice(0, 1)
+  }
+}
 
 class App extends Component {
   constructor(props) {
@@ -24,7 +45,7 @@ class App extends Component {
       player_status: {
         "name": "",
         "cooldown": 0,
-        "encumbrance": 0,  // How much are you carrying?
+        "encumbrance": 0,  // How much are you carrying
         "strength": 0,  // How much can you carry?
         "speed": 0,  // How fast do you travel?
         "gold": 0,
@@ -48,28 +69,46 @@ class App extends Component {
   // find a question mark on your map  
   // and the shortest path to it
   // (run bfs on your map)
-  breadthFirstSearch(big_map, current_room) {
-    let path = [];
+  breadthFirstSearch() {
+    let paths = new Queue();
+    const big_map = localStorage.getItem('big_map');
     // do bfs to find room with question mark and return path to that room
-    return path;
-  }
+    paths.enqueue([this.state.current_room.room_id]);
+    const current_path = null;
 
-  traverseMaze(big_map, current_room) {
-    // traverseMaze returns the direction of the player's next move
-    const next_path = this.breadthFirstSearch(big_map, current_room);
-    
-    // travel along the path to the question mark
-    for (let i = 0; i < next_path.length; i++) {
-      axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', 
-        {'direction': next_path[i]})
-        .then(response => this.setState({current_room: response.data}))
-        .catch(err => console.log(err))
+    while (paths.length > 0) {
+      current_path = paths.dequeue();
+      // is there a question mark in this room on the big map?
+      
+
     }
 
-    // take first question mark path
-    when current_room == target
-    // run bfs on your current map to find closed question mark and path to it
-   
+    // return path;
+  }
+
+  // walk into unvisited rooms until you cant, 
+  // then run bfs to find next unvisited spot
+  traverseMaze() {
+    // if room is not on big map
+      // add room to map
+      // fill in known exits in previous room and new room
+    if (!big_map[this.state.current_room.room_id]) {
+      big_map[this.state.current_room.room_id] = {};
+      const exits = this.state.current_room.exits.split('');
+      for (let i = 0; i < exits.length; i++) {
+        big_map[this.state.current_room.room_id][exits[i]] = '?';
+      }
+      // big_map[this.state.current_room.room_id][opposite direction of last move] = last_room
+      // big_map[this.state.previous_room][direction of last move] = current_room
+    }
+    
+    // if room has a question mark in its big map entry
+      // go to the question mark
+
+    // if room has no question marks
+      // use bfs to find path to closest room with question mark
+      // go to that room
+
   }
   
 

@@ -57,23 +57,69 @@ class App extends Component {
   }
 
   async componentDidMount() {
-    let start_room = null;
-    let start_player = null;
     try {
       // if POST is made after GET, it throws 400 error on POST call. Works fine this way. Why?
-      start_player = await axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/status/');
-      start_room = await axios.get('https://lambda-treasure-hunt.herokuapp.com/api/adv/init/');
-      console.log(`start_room ${start_room}`);
+      let start_player = await axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/status/');
+      let start_room = await axios.get('https://lambda-treasure-hunt.herokuapp.com/api/adv/init/');
       this.setState({
         current_room: start_room.data,
         previous_room: start_room.data,
         player_status: start_player.data
       });
     } catch(err) {
-      console.log(`init err ${err}`);
+      console.log(`componentDidMount err ${err}`);
     }
+    console.log(``)
+  }
 
-    console.log(this.state);
+  
+  async traverseMaze(event) {
+    event.preventDefault();
+    // if auto_traverse is False:
+    const next_direction = event.target.value;
+    // // Add entry to map if this room is new
+    // if (!big_map[this.state.current_room.room_id]) {
+    //   big_map[this.state.current_room.room_id] = {};
+    //   console.log(this.state.current_room);
+    //   const exits = this.state.current_room.exits;
+    //   for (let i = 0; i < exits.length; i++) {
+    //     big_map[this.state.current_room.room_id][exits[i]] = '?';
+    //   }
+    // }
+    // // add entries to big map
+    // // should only happen when last direction entered a question mark?
+    // big_map[this.state.previous_room.room_id][this.state.last_direction] = this.state.current_room.room_id;
+    // big_map[this.state.current_room.room_id][this.reverse(this.state.last_direction)] = this.state.previous_room.room_id;
+
+    // // Push map changes to localStorage
+    // localStorage.setItem('big_map', JSON.stringify(big_map));
+
+    // // Map updated. choose a new direction
+    // let next_direction = null;
+    // const exits_ = this.state.current_room.exits;
+    // // if room has a question mark in its big map entry
+    // for (let j = 0; j < exits_.length; j++) {
+    //   if (exits_[j] === '?') {
+    //     next_direction = exits_[j];
+    //     break;
+    //   }
+    // }
+    // if room has no question marks to go to... FILL IN
+    
+
+    // travel in new direction
+    if (next_direction) {
+      try {
+        let response = await axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { 'direction': next_direction });
+        let temp = this.state.current_room;
+        this.setState({
+          current_room: response.data,
+          previous_room: temp
+        });
+      } catch(err) {
+        console.log(`traverseMaze err ${err}`);
+      }
+    }
   }
 
   reverse(direction) {
@@ -121,51 +167,6 @@ class App extends Component {
     return false;
   }
     
-  async traverseMaze(event) {
-    event.preventDefault();
-    // if auto_traverse is False:
-    const next_direction = event.target.value;
-    // // Add entry to map if this room is new
-    // if (!big_map[this.state.current_room.room_id]) {
-    //   big_map[this.state.current_room.room_id] = {};
-    //   console.log(this.state.current_room);
-    //   const exits = this.state.current_room.exits;
-    //   for (let i = 0; i < exits.length; i++) {
-    //     big_map[this.state.current_room.room_id][exits[i]] = '?';
-    //   }
-    // }
-    // // add entries to big map
-    // // should only happen when last direction entered a question mark?
-    // big_map[this.state.previous_room.room_id][this.state.last_direction] = this.state.current_room.room_id;
-    // big_map[this.state.current_room.room_id][this.reverse(this.state.last_direction)] = this.state.previous_room.room_id;
-
-    // // Push map changes to localStorage
-    // localStorage.setItem('big_map', JSON.stringify(big_map));
-
-    // // Map updated. choose a new direction
-    // let next_direction = null;
-    // const exits_ = this.state.current_room.exits;
-    // // if room has a question mark in its big map entry
-    // for (let j = 0; j < exits_.length; j++) {
-    //   if (exits_[j] === '?') {
-    //     next_direction = exits_[j];
-    //     break;
-    //   }
-    // }
-    // if room has no question marks to go to... FILL IN
-    
-
-    // travel in new direction
-    console.log(`%%%%% next_direction: ${next_direction}`);
-    if (next_direction) {
-      const response = await axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { 'direction': next_direction });
-      const temp = this.state.current_room;
-      this.setState({
-        current_room: response.data,
-        previous_room: temp
-      });
-    }
-  }
 
   render() {
     return (
@@ -179,10 +180,10 @@ class App extends Component {
           <ul>{this.state.current_room.exits}</ul>
           <ul>Messages: {this.state.current_room.messages}</ul>
           <ul>Errors: {this.state.current_room.errors}</ul>
-          <button onClick={this.traverseMaze} value='n'>N</button>
-          <button onClick={this.traverseMaze} value='s'>S</button>
-          <button onClick={this.traverseMaze} value='e'>E</button>
-          <button onClick={this.traverseMaze} value='w'>W</button>
+          <button onClick={this.traverseMaze.bind(this)} value='n'>N</button>
+          <button onClick={this.traverseMaze.bind(this)} value='s'>S</button>
+          <button onClick={this.traverseMaze.bind(this)} value='e'>E</button>
+          <button onClick={this.traverseMaze.bind(this)} value='w'>W</button>
         </div>
         <div>
           <ul>Name: {this.state.player_status.name}</ul>

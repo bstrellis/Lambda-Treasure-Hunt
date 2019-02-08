@@ -75,7 +75,7 @@ class App extends Component {
   // A move was made and state was altered. Update the map
   // how do i handle first room?  could simply leave as first room with question mark...
   componentDidUpdate() { 
-    let big_map = this.state.big_map;
+    let big_map = JSON.parse(localStorage.getItem('big_map'));
     if (!big_map[this.state.current_room.room_id]) {
       big_map[this.state.current_room.room_id] = {};
       const exits = this.state.current_room.exits;
@@ -85,7 +85,11 @@ class App extends Component {
     }
     // add entries to big map
     // if last room and previous room are different, update connection
-    if (this.state.current_room.room_id !== this.state.previous_room.room_id) {
+    console.log('here')
+    console.log(`this.state.last_direction ${this.state.last_direction}`);
+    console.log(`big_map[this.state.previous_room.room_id] ${big_map[this.state.previous_room.room_id]}`);
+    console.log(`big_map[this.state.current_room.room_id] ${big_map[this.state.current_room.room_id]}`);
+    if (this.state.last_direction !== '') {
       big_map[this.state.previous_room.room_id][this.state.last_direction] = this.state.current_room.room_id;
       big_map[this.state.current_room.room_id][this.reverse(this.state.last_direction)] = this.state.previous_room.room_id;
     }
@@ -97,11 +101,6 @@ class App extends Component {
     event.preventDefault();
     // if auto_traverse is False:
     const next_direction = event.target.value;
-    // Add entry to map if this room is new
-    console.log(this.state.current_room);
-    
-
-    // Map updated. choose a new direction
     // let next_direction = null;
     // const exits_ = this.state.current_room.exits;
     // // if room has a question mark in its big map entry
@@ -119,9 +118,11 @@ class App extends Component {
       try {
         let response = await axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { 'direction': next_direction });
         let temp = this.state.current_room;
+        console.log('ran traverseMaze');
         this.setState({
           current_room: response.data,
-          previous_room: temp
+          previous_room: temp,
+          last_direction: next_direction
         });
       } catch(err) {
         console.log(`traverseMaze err ${err}`);

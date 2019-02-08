@@ -11,21 +11,6 @@ if (localStorage.getItem('big_map') === null) {
 const secret_token = 'Token a8c8c5dc999d0ce160ce55b343e72be7694b27aa'
 axios.defaults.headers.common['Authorization'] = secret_token;
 
-// Build Queue class for breadth first search
-class Queue {
-  constructor() {
-    this.storage = [];
-  }
-
-  enqueue(item) {
-    this.storage.push(item);
-  }
-
-  dequeue() {
-    return this.storage.splice(0, 1)
-  }
-}
-
 class App extends Component {
   constructor(props) {
     super(props);
@@ -41,7 +26,19 @@ class App extends Component {
         "cooldown": 0,
         "errors": [],
         "messages": []
-    },
+      },
+      previous_room: {
+        "room_id": 0,
+        "title": "",
+        "description": "",
+        "coordinates": "",
+        "players": [],
+        "items": [],
+        "exits": [],
+        "cooldown": 0,
+        "errors": [],
+        "messages": []
+      },
       player_status: {
         "name": "",
         "cooldown": 0,
@@ -53,65 +50,117 @@ class App extends Component {
         "status": [],
         "errors": [],
         "messages": []
-      }
+      },
+      last_direction: '',
+      big_map: JSON.parse(localStorage.getItem('big_map'))
     }
   }
 
   componentDidMount() {
     axios.get('https://lambda-treasure-hunt.herokuapp.com/api/adv/init/')
-      .then(response => this.setState({current_room: response.data}))
-      .catch(err => console.log(err));
+      .then(response => this.setState({
+        current_room: response.data,
+        previous_room: response.data
+      }))
+      .catch(err => console.log(`init error: ${err}`));
     axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/status/')
       .then(response => this.setState({player_status: response.data}))
-      .catch(err => console.log(err));
+      .catch(err => console.log(`status error: ${err}`));
+    console.log(this.state);
   }
 
+  reverse(direction) {
+    const reverse_lookup = {
+      'n':'s',
+      's':'n',
+      'e':'w',
+      'w':'e'
+    };
+    return reverse_lookup[direction];
+  }
+  
   // find a question mark on your map  
   // and the shortest path to it
-  // (run bfs on your map)
-  breadthFirstSearch() {
-    let paths = new Queue();
-    const big_map = localStorage.getItem('big_map');
-    // do bfs to find room with question mark and return path to that room
-    paths.enqueue([this.state.current_room.room_id]);
-    const current_path = null;
+  breadthFirstSearch(big_map) {
+    let paths = [];
+    let visited = [];
+    let current_path = null;
+    let cur_room = null;
+    
+    paths.push([this.state.current_room.room_id]);
 
     while (paths.length > 0) {
-      current_path = paths.dequeue();
-      // is there a question mark in this room on the big map?
-      
+      current_path = paths.splice(0, 1);
+      cur_room = current_path[-1];
+      visited.push(cur_room);
 
+      // is there a question mark in this room on the big map?
+      const exits = Object.entries(big_map[cur_room]);
+      for (let i = 0; i < exits.length; i++) {
+        if (exits[i] === '?') {
+          return current_path[0];
+        }
+      }
+      // no question marks here. go to the connecting rooms and try again
+      for (let z = 0; z < exits.length; z++) {
+        if (!visited.includes(exits[z][0])) {
+          const new_path = current_path.splice();
+          new_path.push(exits[z][1]);
+          paths.push(new_path);
+        }
+      }
     }
 
-    // return path;
+    return false;
   }
+    
 
-  // walk into unvisited rooms until you cant, 
-  // then run bfs to find next unvisited spot
+
   traverseMaze() {
-    // if room is not on big map
-      // add room to map
-      // fill in known exits in previous room and new room
+    // Add entry to map if this room is new
     if (!big_map[this.state.current_room.room_id]) {
       big_map[this.state.current_room.room_id] = {};
-      const exits = this.state.current_room.exits.split('');
+      console.log(this.state.current_room);
+      const exits = this.state.current_room.exits;
       for (let i = 0; i < exits.length; i++) {
         big_map[this.state.current_room.room_id][exits[i]] = '?';
       }
-      // big_map[this.state.current_room.room_id][opposite direction of last move] = last_room
-      // big_map[this.state.previous_room][direction of last move] = current_room
     }
-    
+    // add entries to big map
+    // should only happen when last direction entered a question mark?
+    big_map[this.state.previous_room.room_id][this.state.last_direction] = this.state.current_room.room_id;
+    big_map[this.state.current_room.room_id][this.reverse(this.state.last_direction)] = this.state.previous_room.room_id;
+
+    // Push map changes to localStorage
+    localStorage.setItem('big_map', JSON.stringify(big_map));
+
+    // Map updated. choose a new direction
+    let next_direction = null;
+    const exits_ = this.state.current_room.exits;
     // if room has a question mark in its big map entry
-      // go to the question mark
+    for (let j = 0; j < exits_.length; j++) {
+      if (exits_[j] === '?') {
+        next_direction = exits_[j];
+        break;
+      }
+    }
+    // if room has no question marks to go to... FILL IN
+    
 
-    // if room has no question marks
-      // use bfs to find path to closest room with question mark
-      // go to that room
-
+    // travel in new direction
+    console.log(`%%%%% next_direction: ${next_direction}`);
+    if (next_direction) {
+      axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { 'direction': next_direction })
+        .then(response => {
+          this.setState({
+            previous_room: this.state.current_room
+          });
+          this.setState({
+            current_room: response.data
+          });
+        })
+    }
   }
-  
-
 
   render() {
     return (

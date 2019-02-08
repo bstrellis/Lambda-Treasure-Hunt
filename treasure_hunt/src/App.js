@@ -72,29 +72,36 @@ class App extends Component {
     console.log(``)
   }
 
-  
+  // A move was made and state was altered. Update the map
+  // how do i handle first room?  could simply leave as first room with question mark...
+  componentDidUpdate() { 
+    let big_map = this.state.big_map;
+    if (!big_map[this.state.current_room.room_id]) {
+      big_map[this.state.current_room.room_id] = {};
+      const exits = this.state.current_room.exits;
+      for (let i = 0; i < exits.length; i++) {
+        big_map[this.state.current_room.room_id][exits[i]] = '?';
+      }
+    }
+    // add entries to big map
+    // if last room and previous room are different, update connection
+    if (this.state.current_room.room_id !== this.state.previous_room.room_id) {
+      big_map[this.state.previous_room.room_id][this.state.last_direction] = this.state.current_room.room_id;
+      big_map[this.state.current_room.room_id][this.reverse(this.state.last_direction)] = this.state.previous_room.room_id;
+    }
+    // Push map changes to localStorage
+    localStorage.setItem('big_map', JSON.stringify(big_map));
+  }
+
   async traverseMaze(event) {
     event.preventDefault();
     // if auto_traverse is False:
     const next_direction = event.target.value;
-    // // Add entry to map if this room is new
-    // if (!big_map[this.state.current_room.room_id]) {
-    //   big_map[this.state.current_room.room_id] = {};
-    //   console.log(this.state.current_room);
-    //   const exits = this.state.current_room.exits;
-    //   for (let i = 0; i < exits.length; i++) {
-    //     big_map[this.state.current_room.room_id][exits[i]] = '?';
-    //   }
-    // }
-    // // add entries to big map
-    // // should only happen when last direction entered a question mark?
-    // big_map[this.state.previous_room.room_id][this.state.last_direction] = this.state.current_room.room_id;
-    // big_map[this.state.current_room.room_id][this.reverse(this.state.last_direction)] = this.state.previous_room.room_id;
+    // Add entry to map if this room is new
+    console.log(this.state.current_room);
+    
 
-    // // Push map changes to localStorage
-    // localStorage.setItem('big_map', JSON.stringify(big_map));
-
-    // // Map updated. choose a new direction
+    // Map updated. choose a new direction
     // let next_direction = null;
     // const exits_ = this.state.current_room.exits;
     // // if room has a question mark in its big map entry
@@ -107,7 +114,7 @@ class App extends Component {
     // if room has no question marks to go to... FILL IN
     
 
-    // travel in new direction
+    // travel in next_direction
     if (next_direction) {
       try {
         let response = await axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { 'direction': next_direction });

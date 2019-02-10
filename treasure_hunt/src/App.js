@@ -69,11 +69,9 @@ class App extends Component {
     } catch(err) {
       console.log(`componentDidMount err ${err}`);
     }
-    console.log(``)
   }
 
   // A move was made and state was altered. Update the map
-  // how do i handle first room?  could simply leave as first room with question mark...
   componentDidUpdate() { 
     let big_map = JSON.parse(localStorage.getItem('big_map'));
     if (!big_map[this.state.current_room.room_id]) {
@@ -83,17 +81,12 @@ class App extends Component {
         big_map[this.state.current_room.room_id][exits[i]] = '?';
       }
     }
-    // add entries to big map
-    // if last room and previous room are different, update connection
-    console.log('here')
-    console.log(`this.state.last_direction ${this.state.last_direction}`);
-    console.log(`big_map[this.state.previous_room.room_id] ${big_map[this.state.previous_room.room_id]}`);
-    console.log(`big_map[this.state.current_room.room_id] ${big_map[this.state.current_room.room_id]}`);
+    
     if (this.state.last_direction !== '') {
       big_map[this.state.previous_room.room_id][this.state.last_direction] = this.state.current_room.room_id;
       big_map[this.state.current_room.room_id][this.reverse(this.state.last_direction)] = this.state.previous_room.room_id;
     }
-    // Push map changes to localStorage
+    console.log(`Object.entries(big_map).length ${Object.entries(big_map).length}`);
     localStorage.setItem('big_map', JSON.stringify(big_map));
   }
 
@@ -111,9 +104,7 @@ class App extends Component {
     //   }
     // }
     // if room has no question marks to go to... FILL IN
-    
 
-    // travel in next_direction
     if (next_direction) {
       try {
         let response = await axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { 'direction': next_direction });
@@ -128,6 +119,12 @@ class App extends Component {
         console.log(`traverseMaze err ${err}`);
       }
     }
+  }
+
+  // runs continuous traversal loop with timeout 
+  autoTraverseMaze(event) {
+    event.preventDefault();
+    const test = setInterval(this.traverseMaze, 5000);
   }
 
   reverse(direction) {
